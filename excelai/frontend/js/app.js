@@ -687,8 +687,6 @@
     tabBtn.addEventListener('click', (ev) => {
       ev.stopPropagation();
       chatPanel.classList.toggle('expanded');
-      // ensure lucide icons render when expanded
-      try { if (window.lucide) window.lucide.createIcons(); } catch (e) {}
     });
 
     // Collapse when clicking outside

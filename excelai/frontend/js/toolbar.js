@@ -1,9 +1,26 @@
 (function () {
+  const ICONS = {
+    'file-plus': '📁',
+    file: '💾',
+    'file-text': '📄',
+    'file-pdf': '🧾',
+    type: '⌨️',
+    image: '🖼️',
+    link: '🔗',
+    'edit-2': '✏️',
+    'refresh-cw': '↻',
+    'trash-2': '🗑️',
+    code: '{}',
+    'bar-chart-2': '📊',
+    'log-out': '⎋',
+    'message-square': '💬',
+  };
+
   function groupButton(action, iconName, label, active = false, disabled = false) {
     return `
       <button class="toolbar-button ${active ? 'active' : ''}" data-action="${action}" ${disabled ? 'disabled' : ''} aria-label="${label}" title="${label}">
         <span class="state-dot" aria-hidden="true"></span>
-        <span class="icon"><i data-lucide="${iconName}"></i></span>
+        <span class="icon" aria-hidden="true">${ICONS[iconName] || '•'}</span>
         <span class="label">${label}</span>
       </button>`;
   }
@@ -38,8 +55,6 @@
         </div>
         ${groupButton('logout', 'log-out', 'Logout')}
       </div>`;
-      // After inserting icons, replace with Lucide SVGs
-      try { if (window.lucide) window.lucide.createIcons(); } catch (e) {}
   }
 
   window.ExcelAI = window.ExcelAI || {};

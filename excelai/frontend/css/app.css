@@ -146,8 +146,9 @@ body::before { display: none; }
 
 .toolbar-button .icon {
   display: block;
-  font-size: 1.3rem;
+  font-size: 1.2rem;
   line-height: 1;
+  font-weight: 700;
 }
 
 .toolbar-button .label { display: none; }
@@ -169,6 +170,11 @@ body::before { display: none; }
   z-index: 40;
 }
 
+.toolbar-button .icon {
+  min-width: 22px;
+  text-align: center;
+}
+
 .toolbar-button .state-dot {
   position: absolute;
   top: 8px;
@@ -179,7 +185,7 @@ body::before { display: none; }
   background: transparent;
 }
 
-.toolbar-button.active .state-dot { background: var(--accent); box-shadow: 0 0 12px rgba(0,255,136,0.5); }
+.toolbar-button.active .state-dot { background: var(--accent); box-shadow: 0 0 8px rgba(29,125,58,0.22); }
 
 .account-chip {
   display: flex;
@@ -266,7 +272,7 @@ body::before { display: none; }
   cursor: pointer;
 }
 
-.chat-panel .panel-header .chat-tab i { font-size: 22px; color: var(--primary-dark); }
+.chat-panel .panel-header .chat-tab .chat-tab-icon { font-size: 22px; color: var(--primary-dark); line-height: 1; }
 
 .visually-hidden { position: absolute !important; height: 1px; width: 1px; overflow: hidden; clip: rect(1px,1px,1px,1px); white-space: nowrap; }
 
@@ -289,7 +295,7 @@ body::before { display: none; }
   grid-template-rows: auto 1fr auto;
   background: var(--white);
   border-radius: 12px;
-  box-shadow: 0 12px 40px rgba(14, 20, 30, 0.18);
+  box-shadow: 0 12px 32px rgba(14, 20, 30, 0.12);
   overflow: hidden;
 }
 
