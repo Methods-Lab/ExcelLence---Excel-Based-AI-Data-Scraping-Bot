@@ -3,12 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ExcelAI — Workspace</title>
+  <title>ExcelLence — Workspace</title>
   <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/app.css" />
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.244.0/dist/lucide.min.js"></script>
 </head>
 <body>
   <div class="app-shell">
@@ -17,8 +18,11 @@
     <main class="workspace">
       <section class="chat-panel">
         <div class="panel-header">
-          <h2>Data Input</h2>
-          <span class="cursor-dot"></span>
+          <h2>ExcelLence</h2>
+          <div>
+            <div style="font-family: 'Nunito', sans-serif; font-weight:700; color:#1D7D3A;">Data Assistant</div>
+            <span class="cursor-dot"></span>
+          </div>
         </div>
 
         <div class="message-stream" id="messageStream"></div>
@@ -36,6 +40,16 @@
               <span>e.g. Top 10 electric car companies by market cap 2024 with columns: Rank, Company, Market Cap (USD B), Country</span>
             </label>
             <button type="submit" class="primary-btn">Extract Data</button>
+
+            <details class="calc-builder" id="calcBuilder">
+              <summary>Add calculated columns</summary>
+              <div id="calcRows" style="display: grid; gap:8px; margin-top:8px;"></div>
+              <div style="display:flex; gap:8px; margin-top:8px;">
+                <input type="text" id="newCalcName" placeholder="Column name" style="flex:1;padding:8px;border:1px solid #E1E4E8;border-radius:6px;" />
+                <input type="text" id="newCalcFormula" placeholder="Formula (use col_0, col_1...)" style="flex:2;padding:8px;border:1px solid #E1E4E8;border-radius:6px;" />
+                <button type="button" id="addCalcBtn" class="secondary-btn">Add</button>
+              </div>
+            </details>
           </form>
 
           <form class="mode-form hidden" id="imageForm" data-form-mode="image">

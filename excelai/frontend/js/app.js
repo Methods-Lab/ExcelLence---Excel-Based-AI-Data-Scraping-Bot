@@ -99,6 +99,79 @@
     addMessage('ai', text, meta);
   }
 
+  function collectCalculations() {
+    const rows = [];
+    document.querySelectorAll('#calcRows .calc-row').forEach((el) => {
+      const name = el.querySelector('.calc-name').value.trim();
+      const formula = el.querySelector('.calc-formula').value.trim();
+      if (name && formula) rows.push({ name, formula });
+    });
+    return rows;
+  }
+
+  function showTopicSelector(detect) {
+    return new Promise((resolve) => {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'message system';
+      const list = document.createElement('div');
+      list.style.display = 'grid';
+      list.style.gap = '8px';
+      list.style.maxHeight = '240px';
+      list.style.overflow = 'auto';
+
+      const selectedIds = new Set();
+      detect.topics.forEach((topic) => {
+        const title = document.createElement('div');
+        title.style.fontWeight = '600';
+        title.textContent = topic.name;
+        list.appendChild(title);
+        topic.sub_tables.forEach((sub) => {
+          const row = document.createElement('label');
+          row.style.display = 'flex';
+          row.style.alignItems = 'center';
+          row.style.gap = '8px';
+          const cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.value = sub.id;
+          cb.addEventListener('change', () => {
+            if (cb.checked) selectedIds.add(sub.id); else selectedIds.delete(sub.id);
+          });
+          const txt = document.createElement('span');
+          txt.textContent = `${sub.name} — ${sub.estimated_rows} rows`;
+          row.appendChild(cb);
+          row.appendChild(txt);
+          list.appendChild(row);
+        });
+      });
+
+      const actions = document.createElement('div');
+      actions.style.display = 'flex';
+      actions.style.gap = '8px';
+      actions.style.marginTop = '8px';
+      const btnExtract = document.createElement('button');
+      btnExtract.className = 'primary-btn';
+      btnExtract.textContent = 'Extract Selected';
+      btnExtract.addEventListener('click', () => {
+        wrapper.remove();
+        resolve(Array.from(selectedIds));
+      });
+      const btnCancel = document.createElement('button');
+      btnCancel.className = 'ghost-btn';
+      btnCancel.textContent = 'Cancel';
+      btnCancel.addEventListener('click', () => {
+        wrapper.remove();
+        resolve([]);
+      });
+      actions.appendChild(btnCancel);
+      actions.appendChild(btnExtract);
+
+      wrapper.appendChild(list);
+      wrapper.appendChild(actions);
+      messageStream.appendChild(wrapper);
+      messageStream.scrollTop = messageStream.scrollHeight;
+    });
+  }
+
   function setMode(mode) {
     state.mode = mode;
     document.querySelectorAll('.mode-btn').forEach((button) => button.classList.toggle('active', button.dataset.mode === mode));
@@ -236,25 +309,73 @@
       let response;
       if (kind === 'text') {
         addUserMessage(payload.prompt);
+        const calculations = collectCalculations();
+        // Send calculations as part of selected-topics flow for consistency
         response = await window.ExcelAI.request('/api/extract/text', {
           method: 'POST',
           body: JSON.stringify({ prompt: payload.prompt }),
         });
       } else if (kind === 'image') {
         addUserMessage(`Image uploaded: ${payload.file.name}`);
-        const formData = new FormData();
-        formData.append('file', payload.file);
-        formData.append('instruction', payload.instruction || '');
-        response = await window.ExcelAI.request('/api/extract/image', {
+        // First perform OCR-only to detect topics
+        const ocrForm = new FormData();
+        ocrForm.append('file', payload.file);
+        const ocrResp = await window.ExcelAI.request('/api/extract/ocr', { method: 'POST', body: ocrForm });
+        // Detect topics from OCR text
+        const detect = await window.ExcelAI.request('/api/extract/detect-topics', {
           method: 'POST',
-          body: formData,
+          body: JSON.stringify({ content_type: 'image', content: ocrResp.text }),
         });
+        if (detect.topics && detect.topics.length) {
+          const selected = await showTopicSelector(detect);
+          if (!selected || selected.length === 0) {
+            window.ExcelAI.showToast('Please select at least one table to extract.', 'warning');
+            setLoading(false);
+            return;
+          }
+          const calculations = collectCalculations();
+          response = await window.ExcelAI.request('/api/extract/selected-topics', {
+            method: 'POST',
+            body: JSON.stringify({ content: ocrResp.text, selected_ids: selected, calculated_columns: calculations }),
+          });
+        } else {
+          // fallback to direct image extraction
+          const formData = new FormData();
+          formData.append('file', payload.file);
+          formData.append('instruction', payload.instruction || '');
+          response = await window.ExcelAI.request('/api/extract/image', { method: 'POST', body: formData });
+        }
       } else if (kind === 'url') {
         addUserMessage(payload.url);
-        response = await window.ExcelAI.request('/api/extract/url', {
+        // First, detect topics and receive scraped content
+        const detect = await window.ExcelAI.request('/api/extract/detect-topics', {
           method: 'POST',
-          body: JSON.stringify({ url: payload.url, clarification: payload.clarification || '' }),
+          body: JSON.stringify({ content_type: 'url', content: payload.url }),
         });
+        // If topics found, present selector and let user choose
+        if (detect.topics && detect.topics.length) {
+          const selected = await showTopicSelector(detect);
+          if (!selected || selected.length === 0) {
+            window.ExcelAI.showToast('Please select at least one table to extract.', 'warning');
+            setLoading(false);
+            return;
+          }
+          // send selected topics request with scraped content and calculations
+          const calculations = collectCalculations();
+          response = await window.ExcelAI.request('/api/extract/selected-topics', {
+            method: 'POST',
+            body: JSON.stringify({ content: detect.scraped_content || payload.url, selected_ids: selected, calculated_columns: calculations }),
+          });
+        } else {
+          // fall back to direct URL extraction
+          response = await window.ExcelAI.request('/api/extract/url', {
+            method: 'POST',
+            body: JSON.stringify({ url: payload.url, clarification: payload.clarification || '' }),
+          });
+        }
+      } else if (kind === 'url') {
+        // legacy path handled above
+        response = null;
       }
 
       state.lastExtraction = { kind, payload };
@@ -285,8 +406,8 @@
       await window.ExcelAI.download('/api/export/excel', {
         columns: state.currentData.columns,
         rows: state.currentData.rows,
-        filename: 'ExcelAI_Export.xlsx',
-      }, 'ExcelAI_Export.xlsx');
+        filename: 'ExcelLence_Export.xlsx',
+      }, 'ExcelLence_Export.xlsx');
       setStatus('Export complete');
       window.ExcelAI.showToast('Excel file downloaded.', 'success');
     } catch (error) {
@@ -303,12 +424,30 @@
       await window.ExcelAI.download('/api/export/csv', {
         columns: state.currentData.columns,
         rows: state.currentData.rows,
-        filename: 'ExcelAI_Export.csv',
-      }, 'ExcelAI_Export.csv');
+        filename: 'ExcelLence_Export.csv',
+      }, 'ExcelLence_Export.csv');
       setStatus('Export complete');
       window.ExcelAI.showToast('CSV file downloaded.', 'success');
     } catch (error) {
       window.ExcelAI.showToast(error.message || 'CSV export failed', 'error');
+    }
+  }
+
+  async function exportPdf() {
+    if (!state.currentData) {
+      window.ExcelAI.showToast('No table data to export.', 'warning');
+      return;
+    }
+    try {
+      await window.ExcelAI.download('/api/export/pdf', {
+        columns: state.currentData.columns,
+        rows: state.currentData.rows,
+        filename: 'ExcelLence_Export.pdf',
+      }, 'ExcelLence_Export.pdf');
+      setStatus('PDF export complete');
+      window.ExcelAI.showToast('PDF downloaded.', 'success');
+    } catch (error) {
+      window.ExcelAI.showToast(error.message || 'PDF export failed', 'error');
     }
   }
 
@@ -360,6 +499,9 @@
         break;
       case 'export-csv':
         exportCsv().catch(() => {});
+        break;
+      case 'export-pdf':
+        exportPdf().catch(() => {});
         break;
       case 'mode-text':
         setMode('text');
@@ -499,6 +641,35 @@
     }
   });
 
+  // Calculation builder wiring
+  const addCalcBtn = document.getElementById('addCalcBtn');
+  const calcRows = document.getElementById('calcRows');
+  if (addCalcBtn && calcRows) {
+    addCalcBtn.addEventListener('click', () => {
+      const nameInput = document.getElementById('newCalcName');
+      const formulaInput = document.getElementById('newCalcFormula');
+      const name = nameInput.value.trim();
+      const formula = formulaInput.value.trim();
+      if (!name || !formula) {
+        window.ExcelAI.showToast('Enter name and formula for the calculated column.', 'warning');
+        return;
+      }
+      const row = document.createElement('div');
+      row.className = 'calc-row';
+      row.style.display = 'flex';
+      row.style.gap = '8px';
+      row.innerHTML = `
+        <input class="calc-name" value="${name}" style="flex:1;padding:8px;border:1px solid #E1E4E8;border-radius:6px;" />
+        <input class="calc-formula" value="${formula}" style="flex:2;padding:8px;border:1px solid #E1E4E8;border-radius:6px;" />
+        <button type="button" class="secondary-btn remove-calc">Remove</button>
+      `;
+      calcRows.appendChild(row);
+      nameInput.value = '';
+      formulaInput.value = '';
+      row.querySelector('.remove-calc').addEventListener('click', () => row.remove());
+    });
+  }
+
   window.addEventListener('resize', () => {
     if (window.innerWidth < 1180) {
       document.body.style.overflow = 'auto';
@@ -506,7 +677,7 @@
   });
 
   setStatus('Ready');
-  addSystemMessage('ExcelAI is ready. Choose a data source on the left to begin extraction.');
+  addSystemMessage('ExcelLence is ready. Choose a data source on the left to begin extraction.');
   loadUser();
   refreshToolbar();
   renderTableView();

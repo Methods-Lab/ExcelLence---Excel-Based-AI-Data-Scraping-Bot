@@ -18,6 +18,7 @@ from fastapi.staticfiles import StaticFiles
 from backend.routes.auth import router as auth_router
 from backend.routes.extract import router as extract_router
 from backend.routes.export import router as export_router
+from backend.routes.export_pdf import router as export_pdf_router
 
 BASE_DIR = Path(__file__).resolve().parent
 FRONTEND_DIR = Path(_PROJECT_ROOT) / "frontend"
@@ -41,6 +42,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(extract_router)
 app.include_router(export_router)
+app.include_router(export_pdf_router)
 
 # Mount static files
 if FRONTEND_DIR.exists():

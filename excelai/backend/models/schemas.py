@@ -69,3 +69,36 @@ class ImageExtractResponse(ExtractResponse):
 class ErrorResponse(BaseModel):
     error: str
     detail: str | None = None
+
+
+class DetectedSubTable(BaseModel):
+    id: str
+    name: str
+    estimated_rows: int = 0
+
+
+class DetectedTopic(BaseModel):
+    id: str
+    name: str
+    sub_tables: list[DetectedSubTable] = []
+
+
+class TopicDetectRequest(BaseModel):
+    content_type: Literal["image", "url"]
+    content: str
+
+
+class TopicDetectResponse(BaseModel):
+    topics: list[DetectedTopic]
+    scraped_content: str | None = None
+
+
+class OcrResponse(BaseModel):
+    text: str
+    metadata: dict | None = None
+
+
+class SelectedTopicsRequest(BaseModel):
+    content: str
+    selected_ids: list[str] = []
+    calculated_columns: list[dict] | None = None

@@ -13,3 +13,4 @@ python-multipart
 bcrypt
 python-dotenv
 email-validator
+reportlab

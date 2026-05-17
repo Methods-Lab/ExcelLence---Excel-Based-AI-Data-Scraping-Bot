@@ -6,30 +6,29 @@ from typing import Any
 from backend.models.schemas import ColumnSchema
 from backend.utils.helpers import build_fallback_table, normalize_whitespace, parse_ai_payload, safe_json_loads
 
-SYSTEM_PROMPT = """You are ExcelAI, a precision data extraction engine. Your sole job is to extract structured tabular data from user input and return it as valid JSON.
+SYSTEM_PROMPT = """
+You are ExcelLence's data extraction engine. You convert raw content into perfectly structured tabular data for Excel export.
 
-RULES:
-1. Always return ONLY a valid JSON object. No markdown, no backticks, no explanations.
-2. Infer column names intelligently. Normalize them (Title Case, no special chars).
-3. Infer data types: "number", "currency", "date", "text", "percentage"
-4. If data is ambiguous, make the best inference and flag it in warnings.
-5. Never hallucinate data. If you cannot extract a value, use null.
-6. Calculate a confidence score (0.0 to 1.0) based on data clarity.
+CRITICAL COMPLETENESS RULES:
+- Return ONLY valid JSON. No markdown, no backticks, no commentary.
+- You MUST return ALL rows from the source data. Never truncate, summarize, or stop early.
+- If the user requests N rows, return exactly N rows. If source has M rows, return all M rows.
+- Do NOT add "..." or any truncation markers. If data exceeds context, prioritize more rows with fewer columns.
 
-RETURN FORMAT (strict JSON):
+OUTPUT FORMAT (strict):
 {
-  "columns": [
-    { "name": "Rank", "type": "number" },
-    { "name": "Company", "type": "text" }
-  ],
-  "rows": [
-    [1, "Apple"],
-    [2, "Microsoft"]
-  ],
-  "confidence": 0.97,
-  "warnings": ["Row 3 revenue value may be in billions — assumed USD billions"],
-  "table_title": "Top 10 Tech Companies by Revenue 2024"
+    "columns": [{ "name": "Rank", "type": "number" }],
+    "rows": [[1, "Apple"]],
+    "confidence": 0.96,
+    "table_title": "Top 10 Tech Companies by Revenue 2024",
+    "warnings": []
 }
+
+FORMAT RULES:
+- Numeric strings -> numbers (remove commas, symbols). Dates -> ISO 8601 where possible.
+- Detect types: number, currency, date, percentage, text.
+- Null for missing values; do not fabricate.
+- Provide precise warnings for uncertain cells/columns.
 """
 
 MODEL_NAME = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
@@ -93,6 +92,7 @@ def _extract_groq_content(client: Any, messages: list[dict[str, str]], strict_js
         "model": MODEL_NAME,
         "messages": messages,
         "temperature": 0.1,
+        "max_tokens": 8000,
     }
     if strict_json:
         request_kwargs["response_format"] = {"type": "json_object"}
@@ -219,3 +219,121 @@ def generate_table(
     except Exception as exc:
         fallback["warnings"] = fallback.get("warnings", []) + [f"LLM extraction failed. Fallback parsing was used. ({exc.__class__.__name__})"]
         return fallback
+
+
+def apply_calculated_columns(rows: list[list[Any]], columns: list[dict[str, Any]], calculations: list[dict[str, str]]) -> tuple[list[list[Any]], list[dict[str, Any]]]:
+    """
+    Apply BODMAS-style calculated columns to the rows.
+    calculations = [ {"name": "Result", "formula": "col_0 + col_2 - col_4"} ]
+    Returns updated (rows, columns) where each calculated column is appended.
+    """
+    import ast, operator
+
+    # Safe operators mapping
+    operators = {
+        ast.Add: operator.add,
+        ast.Sub: operator.sub,
+        ast.Mult: operator.mul,
+        ast.Div: operator.truediv,
+        ast.USub: operator.neg,
+        ast.UAdd: operator.pos,
+    }
+
+    def _safe_eval(node, namespace):
+        if isinstance(node, ast.Expression):
+            return _safe_eval(node.body, namespace)
+        if isinstance(node, ast.Num):
+            return node.n
+        if isinstance(node, ast.Constant):
+            return node.value
+        if isinstance(node, ast.BinOp):
+            left = _safe_eval(node.left, namespace)
+            right = _safe_eval(node.right, namespace)
+            op = operators.get(type(node.op))
+            if op is None:
+                raise ValueError("Unsupported operator")
+            return op(left, right)
+        if isinstance(node, ast.UnaryOp):
+            op = operators.get(type(node.op))
+            operand = _safe_eval(node.operand, namespace)
+            if op is None:
+                raise ValueError("Unsupported unary operator")
+            return op(operand)
+        if isinstance(node, ast.Name):
+            return namespace.get(node.id, 0)
+        if isinstance(node, ast.Call):
+            # disallow function calls
+            raise ValueError("Function calls not allowed")
+        if isinstance(node, ast.Subscript):
+            # allow simple indexing like col_0[0] (not needed here) - disallow
+            raise ValueError("Subscript not allowed")
+        raise ValueError("Unsupported expression")
+
+    col_count = len(columns)
+    for calc in calculations:
+        name = calc.get("name") or calc.get("label") or "Calculated"
+        formula = calc.get("formula", "")
+        # append new column schema
+        columns.append({"name": name, "type": "number", "calculated": True})
+
+        # Pre-parse formula replacing column references like col_0, col_1
+        try:
+            expr_ast = ast.parse(formula, mode="eval")
+        except Exception:
+            # If formula invalid, append None for each row
+            for row in rows:
+                row.append(None)
+            continue
+
+        for row in rows:
+            # Build namespace mapping col_0 .. col_N to numeric values
+            namespace = {}
+            for idx in range(col_count):
+                var = f"col_{idx}"
+                try:
+                    val = row[idx]
+                    namespace[var] = float(val) if val is not None and str(val) != "" else 0.0
+                except Exception:
+                    namespace[var] = 0.0
+
+            try:
+                value = _safe_eval(expr_ast, namespace)
+                # Round floats to 4 decimals
+                if isinstance(value, float):
+                    value = round(value, 4)
+                row.append(value)
+            except Exception:
+                row.append(None)
+
+    return rows, columns
+
+
+async def extract_large_dataset(content: str, schema: dict, chunk_size: int = 30) -> dict[str, Any]:
+    """Split large content into chunks and merge LLM extraction results.
+    This function will call generate_table for each chunk and concatenate rows.
+    """
+    # naive split by lines
+    lines = content.splitlines()
+    chunks = ["\n".join(lines[i:i+chunk_size]) for i in range(0, len(lines), chunk_size)]
+    all_rows = []
+    columns = None
+    confidences = []
+    warnings = []
+
+    for i, chunk in enumerate(chunks):
+        result = generate_table("CHUNK", chunk)
+        if not columns and result.get("columns"):
+            columns = result["columns"]
+        rows = result.get("rows", [])
+        all_rows.extend(rows)
+        if result.get("confidence") is not None:
+            confidences.append(result.get("confidence"))
+        warnings.extend(result.get("warnings", []))
+
+    return {
+        "columns": columns or schema.get("columns", []),
+        "rows": all_rows,
+        "confidence": (sum(confidences)/len(confidences)) if confidences else None,
+        "warnings": warnings,
+        "total_rows": len(all_rows),
+    }
