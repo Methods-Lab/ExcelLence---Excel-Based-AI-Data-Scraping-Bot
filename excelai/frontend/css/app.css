@@ -334,7 +334,7 @@ body::before { display: none; }
 .workspace {
   min-height: 0;
   display: grid;
-  grid-template-columns: 88px 1fr; /* left vertical tab + main table area */
+  grid-template-columns: 92px minmax(0, 1fr); /* left dock + main table area */
   gap: 16px;
   padding: 16px;
 }
@@ -348,6 +348,11 @@ body::before { display: none; }
   border-radius: 12px;
   box-shadow: var(--shadow-sm);
   overflow: hidden;
+}
+
+.chat-panel,
+.table-panel {
+  min-width: 0;
 }
 
 /* Narrow vertical tab appearance for the left assistant */
@@ -729,6 +734,11 @@ tbody tr:nth-child(odd) td { background: #161a22; }
 tbody tr:nth-child(even) td { background: #1c2030; }
 tbody tr:hover td { background: rgba(0, 255, 136, 0.05); }
 
+/* Premium light table rows */
+tbody tr:nth-child(odd) td { background: #ffffff; }
+tbody tr:nth-child(even) td { background: #f8fafc; }
+tbody tr:hover td { background: #eef8f1; }
+
 td[contenteditable="true"] {
   outline: none;
 }
@@ -768,7 +778,7 @@ td.editing {
 .skeleton-row:nth-child(5) { width: 78%; }
 
 .raw-json {
-  color: #dce6f1;
+  color: var(--text-primary);
   font-size: 0.82rem;
   white-space: pre-wrap;
 }

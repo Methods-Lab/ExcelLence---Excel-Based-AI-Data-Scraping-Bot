@@ -84,7 +84,12 @@ def _compose_user_prompt(source_label: str, content: str, clarification: str | N
             "Flag any values that may be OCR misreads (e.g. 'S' vs '5', 'l' vs '1').\n\n"
             f"CONTENT:\n{content}"
         )
-    return f"Extract the tabular data from the user input into the strict JSON format above.\n\nCONTENT:\n{content}"
+    return (
+        "The user has provided a data request or raw text. If the content is already tabular, extract it exactly. "
+        "If the content is a request for a table, generate the best possible structured table that satisfies it. "
+        "Always return a usable table with at least one column and one row.\n\n"
+        f"CONTENT:\n{content}"
+    )
 
 
 def _extract_groq_content(client: Any, messages: list[dict[str, str]], strict_json: bool = True) -> str:
