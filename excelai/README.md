@@ -12,7 +12,7 @@ ExcelAI is a Phase 1 AI-assisted data extraction and Excel table creation app bu
 - Inline table editing and sorting.
 - Excel and CSV export
 - Vercel deployment config
-
+.
 ## Local Run
 
 ### Backend
