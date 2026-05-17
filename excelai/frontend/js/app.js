@@ -679,6 +679,7 @@
   // Chat panel toggle: click the left vertical tab header to expand/collapse chat overlay
   (function setupChatToggle() {
     const chatPanel = document.querySelector('.chat-panel');
+    const workspaceEl = document.querySelector('.workspace');
     if (!chatPanel) return;
     const header = chatPanel.querySelector('.panel-header');
     if (!header) return;
@@ -686,14 +687,18 @@
     tabBtn.style.cursor = 'pointer';
     tabBtn.addEventListener('click', (ev) => {
       ev.stopPropagation();
-      chatPanel.classList.toggle('expanded');
+      const isExpanded = chatPanel.classList.toggle('expanded');
+      if (workspaceEl) {
+        workspaceEl.classList.toggle('chat-open', isExpanded);
+      }
     });
 
-    // Collapse when clicking outside
+    // Collapse when clicking outside — collapse both expanded and workspace state
     document.addEventListener('click', (ev) => {
       if (!chatPanel.classList.contains('expanded')) return;
       if (!chatPanel.contains(ev.target)) {
         chatPanel.classList.remove('expanded');
+        if (workspaceEl) workspaceEl.classList.remove('chat-open');
       }
     });
   })();

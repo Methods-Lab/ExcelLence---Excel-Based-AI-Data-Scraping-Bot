@@ -24,8 +24,15 @@ def generate_pdf_bytes(columns: list[dict], rows: list[list], filename: str | No
     styles = getSampleStyleSheet()
     story = []
 
-    # Prepare table data with header row
-    header = [col.get("name", f"Col {i+1}") for i, col in enumerate(columns)]
+    # Prepare table data with header row. Support either dicts or Pydantic models.
+    header = []
+    for i, col in enumerate(columns):
+        if isinstance(col, dict):
+            header.append(col.get("name", f"Col {i+1}"))
+        else:
+            # Pydantic models expose attributes; fall back to getattr
+            name = getattr(col, "name", None)
+            header.append(name if name is not None else f"Col {i+1}")
     data = [header]
     for r in rows:
         row = []

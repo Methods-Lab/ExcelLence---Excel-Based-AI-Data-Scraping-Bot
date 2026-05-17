@@ -339,6 +339,11 @@ body::before { display: none; }
   padding: 16px;
 }
 
+/* When chat is opened as a persistent sidebar, allocate space for it and keep preview visible */
+.workspace.chat-open {
+  grid-template-columns: 320px minmax(0, 1fr);
+}
+
 .chat-panel, .table-panel {
   min-height: 0;
   display: grid;
@@ -401,17 +406,14 @@ body::before { display: none; }
 
 /* Expanded overlay state for chat when user clicks the tab */
 .chat-panel.expanded {
-  position: fixed;
-  left: 16px;
-  top: 72px;
-  bottom: 72px;
-  width: min(640px, 40%);
-  z-index: 60;
+  /* Make expanded chat occupy the left grid column instead of floating above content */
+  position: relative;
+  width: 320px;
   display: grid;
   grid-template-rows: auto 1fr auto;
   background: var(--white);
   border-radius: 12px;
-  box-shadow: 0 12px 32px rgba(14, 20, 30, 0.12);
+  box-shadow: 0 6px 18px rgba(14, 20, 30, 0.06);
   overflow: hidden;
 }
 
