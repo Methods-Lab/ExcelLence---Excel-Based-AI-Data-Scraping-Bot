@@ -2,6 +2,8 @@
 
 ExcelAI is a Phase 1 AI-assisted data extraction and Excel table creation app built with FastAPI and a custom dark-luxury frontend.
 
+**Note:** Repository updated - now syncing with Methods Lab (main branch)
+
 ## Features
 
 - JWT login and signup
