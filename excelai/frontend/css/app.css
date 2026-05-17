@@ -730,11 +730,6 @@ th {
   font-weight: 600;
 }
 
-tbody tr:nth-child(odd) td { background: #161a22; }
-tbody tr:nth-child(even) td { background: #1c2030; }
-tbody tr:hover td { background: rgba(0, 255, 136, 0.05); }
-
-/* Premium light table rows */
 tbody tr:nth-child(odd) td { background: #ffffff; }
 tbody tr:nth-child(even) td { background: #f8fafc; }
 tbody tr:hover td { background: #eef8f1; }
@@ -744,8 +739,8 @@ td[contenteditable="true"] {
 }
 
 td.editing {
-  box-shadow: inset 0 0 0 1px rgba(0, 255, 136, 0.35);
-  background: rgba(0, 255, 136, 0.04) !important;
+  box-shadow: inset 0 0 0 1px rgba(29, 125, 58, 0.18);
+  background: rgba(29, 125, 58, 0.04) !important;
 }
 
 .low-confidence {
@@ -767,7 +762,7 @@ td.editing {
 .skeleton-row {
   height: 18px;
   border-radius: 999px;
-  background: linear-gradient(90deg, rgba(255,255,255,0.04), rgba(0,255,136,0.12), rgba(255,255,255,0.04));
+  background: linear-gradient(90deg, rgba(255,255,255,0.92), rgba(46,168,79,0.12), rgba(255,255,255,0.92));
   background-size: 200% 100%;
   animation: shimmer 1.2s linear infinite;
 }
