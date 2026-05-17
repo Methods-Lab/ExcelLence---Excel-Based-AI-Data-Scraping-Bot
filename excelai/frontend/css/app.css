@@ -150,10 +150,12 @@ body::before { display: none; }
 }
 
 .toolbar-ribbon {
-  display: grid;
+  display: flex;
   gap: 8px;
   flex: 1 1 auto;
   min-width: 0;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .ribbon-tabs {
@@ -161,6 +163,9 @@ body::before { display: none; }
   gap: 8px;
   align-items: center;
   padding-left: 6px;
+  flex: 1 0 auto;
+  min-width: 0;
+  overflow: auto;
 }
 
 .ribbon-tab {
@@ -185,6 +190,7 @@ body::before { display: none; }
   gap: 10px;
   align-items: stretch;
   min-width: 0;
+  flex-wrap: wrap;
 }
 
 .ribbon-group {
@@ -195,7 +201,8 @@ body::before { display: none; }
   border: 1px solid rgba(140,155,176,0.14);
   border-radius: 14px;
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
-  min-width: max-content;
+  min-width: 0;
+  max-width: 48ch;
 }
 
 .ribbon-label {
@@ -208,7 +215,7 @@ body::before { display: none; }
 
 .toolbar-button {
   position: relative;
-  min-width: 64px;
+  min-width: 46px;
   padding: 8px 10px;
   border-radius: 10px;
   border: 1px solid transparent;
@@ -251,6 +258,31 @@ body::before { display: none; }
 }
 
 .toolbar-button .label { display: none; }
+
+/* Show labels on sufficiently wide screens */
+@media (min-width: 1200px) {
+  .toolbar-button { min-width: 78px; padding: 10px 12px; }
+  .toolbar-button .label { display: block; font-size: 0.78rem; }
+  .ribbon-group { max-width: none; }
+}
+
+/* Compact the ribbon on medium screens */
+@media (max-width: 1199px) and (min-width: 900px) {
+  .toolbar-ribbon { gap: 6px; }
+  .toolbar-button { min-width: 54px; padding: 8px 8px; }
+  .ribbon-tabs { padding-left: 4px; }
+}
+
+/* Small screens: make workspace single-column and make chat overlay to preserve space */
+@media (max-width: 899px) {
+  .workspace { grid-template-columns: 1fr; padding: 12px; }
+  .chat-panel { width: 100%; order: 1; }
+  .table-panel { order: 2; }
+  .toolbar { padding: 10px; }
+  .ribbon-tabs { display: none; }
+  .ribbon-groups { width: 100%; overflow: auto; }
+  .toolbar-button .label { display: none; }
+}
 
 /* tooltip from title attribute */
 .toolbar-button[title]:hover::after{
