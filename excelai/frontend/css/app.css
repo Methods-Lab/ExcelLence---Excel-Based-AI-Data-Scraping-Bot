@@ -61,18 +61,7 @@ body {
   overflow: hidden;
 }
 
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.06;
-  background-image:
-    linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px);
-  background-size: 56px 56px;
-  mask-image: radial-gradient(circle at center, black, transparent 88%);
-}
+body::before { display: none; }
 
 .hidden, .hidden-input { display: none !important; }
 
@@ -93,6 +82,18 @@ body::before {
   z-index: 5;
 }
 
+/* Make toolbar stand out as a ribbon */
+.toolbar {
+  box-shadow: 0 2px 6px rgba(16,24,40,0.04);
+  border-bottom: 1px solid rgba(16,24,40,0.06);
+}
+
+.toolbar-group {
+  background: transparent;
+  padding: 6px 8px;
+  border-radius: 6px;
+}
+
 .toolbar-group {
   display: flex;
   align-items: center;
@@ -109,13 +110,18 @@ body::before {
 
 .toolbar-button {
   position: relative;
-  min-width: 84px;
-  padding: 10px 12px 12px;
-  border-radius: 14px;
+  min-width: 64px;
+  padding: 8px 10px;
+  border-radius: 8px;
   border: 1px solid transparent;
   background: transparent;
-  color: var(--text);
+  color: var(--text-primary);
   cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   transition: transform 160ms ease, background 160ms ease, border-color 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
 }
 
@@ -126,9 +132,11 @@ body::before {
 }
 
 .toolbar-button:active:not(:disabled), .toolbar-button.active {
-  background: rgba(22, 26, 34, 1);
+  background: var(--toolbar-active-bg);
+  border-color: var(--toolbar-active-border);
   transform: translateY(0);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+  color: var(--text-primary);
 }
 
 .toolbar-button:disabled {
@@ -138,15 +146,27 @@ body::before {
 
 .toolbar-button .icon {
   display: block;
-  font-size: 1.1rem;
+  font-size: 1.3rem;
   line-height: 1;
 }
 
-.toolbar-button .label {
-  display: block;
-  margin-top: 6px;
-  font-size: 0.72rem;
-  color: rgba(238, 242, 247, 0.9);
+.toolbar-button .label { display: none; }
+
+/* tooltip from title attribute */
+.toolbar-button[title]:hover::after{
+  content: attr(title);
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: -38px;
+  background: rgba(8,10,15,0.92);
+  color: #fff;
+  padding: 6px 8px;
+  font-size: 12px;
+  border-radius: 6px;
+  white-space: nowrap;
+  box-shadow: 0 8px 24px rgba(10,12,16,0.18);
+  z-index: 40;
 }
 
 .toolbar-button .state-dot {
@@ -197,7 +217,7 @@ body::before {
 .workspace {
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(340px, 40%) minmax(480px, 60%);
+  grid-template-columns: 88px 1fr; /* left vertical tab + main table area */
   gap: 16px;
   padding: 16px;
 }
@@ -211,6 +231,80 @@ body::before {
   border-radius: 12px;
   box-shadow: var(--shadow-sm);
   overflow: hidden;
+}
+
+/* Narrow vertical tab appearance for the left assistant */
+.chat-panel {
+  width: 88px;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 6px;
+  position: relative;
+}
+
+.chat-panel .panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  height: 100%;
+}
+
+.chat-panel .panel-header .chat-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  background: linear-gradient(180deg, var(--white), #fbfdfe);
+  cursor: pointer;
+}
+
+.chat-panel .panel-header .chat-tab i { font-size: 22px; color: var(--primary-dark); }
+
+.visually-hidden { position: absolute !important; height: 1px; width: 1px; overflow: hidden; clip: rect(1px,1px,1px,1px); white-space: nowrap; }
+
+/* Hide the full chat contents when in vertical tab mode */
+.chat-panel .message-stream,
+.chat-panel .input-switcher,
+.chat-panel .input-stack {
+  display: none;
+}
+
+/* Expanded overlay state for chat when user clicks the tab */
+.chat-panel.expanded {
+  position: fixed;
+  left: 16px;
+  top: 72px;
+  bottom: 72px;
+  width: min(640px, 40%);
+  z-index: 60;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  background: var(--white);
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(14, 20, 30, 0.18);
+  overflow: hidden;
+}
+
+.chat-panel.expanded .panel-header {
+  writing-mode: horizontal-tb;
+  transform: none;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  justify-content: flex-start;
+}
+
+.chat-panel.expanded .message-stream,
+.chat-panel.expanded .input-switcher,
+.chat-panel.expanded .input-stack {
+  display: block;
 }
 
 .panel-header {
@@ -231,12 +325,12 @@ body::before {
 
 .panel-header p { margin: 6px 0 0; color: var(--muted); }
 .cursor-dot, .pulse-dot {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 14px rgba(0, 255, 136, 0.58);
-  animation: pulse 1.4s ease-in-out infinite;
+  box-shadow: 0 0 6px rgba(46, 168, 79, 0.22);
+  animation: pulse 1.6s ease-in-out infinite;
 }
 
 .message-stream {
@@ -273,9 +367,9 @@ body::before {
 
 .message.system {
   width: 100%;
-  background: rgba(92, 64, 0, 0.28);
+  background: var(--warning-bg);
   border: 1px solid rgba(245, 184, 76, 0.24);
-  color: #f8e7bf;
+  color: var(--text-primary);
 }
 
 .message-meta {
@@ -314,9 +408,9 @@ body::before {
 
 .mode-btn, .secondary-btn, .ghost-btn {
   border-radius: 14px;
-  border: 1px solid rgba(138, 155, 176, 0.18);
-  background: rgba(13, 15, 20, 0.82);
-  color: var(--text);
+  border: 1px solid var(--border-strong);
+  background: var(--white);
+  color: var(--text-primary);
   padding: 12px 14px;
   font: inherit;
   cursor: pointer;
@@ -324,9 +418,9 @@ body::before {
 }
 
 .mode-btn.active {
-  border-color: rgba(0, 255, 136, 0.35);
-  background: rgba(0, 255, 136, 0.08);
-  color: var(--accent);
+  border-color: var(--primary-mid);
+  background: rgba(46, 168, 79, 0.08);
+  color: var(--primary-dark);
 }
 
 .input-stack {
@@ -347,9 +441,9 @@ body::before {
 .floating input, .floating textarea {
   width: 100%;
   border-radius: 16px;
-  border: 1px solid rgba(138, 155, 176, 0.18);
-  background: rgba(13, 15, 20, 0.92);
-  color: var(--text);
+  border: 1px solid var(--border-strong);
+  background: var(--white);
+  color: var(--text-primary);
   padding: 18px 16px 14px;
   outline: none;
   font: inherit;
@@ -465,9 +559,9 @@ body::before {
   border-radius: 18px;
   border: 1px solid rgba(138, 155, 176, 0.2);
   background:
-    linear-gradient(rgba(0,255,136,0.1) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,255,136,0.1) 1px, transparent 1px),
-    rgba(13, 15, 20, 0.92);
+    linear-gradient(rgba(46,168,79,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(46,168,79,0.03) 1px, transparent 1px),
+    var(--surface-2);
   background-size: 18px 18px;
   box-shadow: inset 0 0 0 1px rgba(0,255,136,0.06);
 }
@@ -571,9 +665,9 @@ td.editing {
 
 .stat-card {
   padding: 14px 16px;
-  border-radius: 16px;
-  border: 1px solid rgba(138, 155, 176, 0.14);
-  background: rgba(13, 15, 20, 0.9);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--white);
 }
 
 .stat-card strong {
@@ -593,16 +687,16 @@ td.editing {
 }
 
 .status-bar {
-  min-height: 28px;
+  min-height: 32px;
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   align-items: center;
   gap: 12px;
-  padding: 6px 18px;
-  font-size: 0.75rem;
+  padding: 8px 18px;
+  font-size: 0.78rem;
   color: var(--muted);
-  border-top: 1px solid rgba(138, 155, 176, 0.12);
-  background: rgba(13, 15, 20, 0.9);
+  border-top: 1px solid var(--border);
+  background: var(--surface);
 }
 
 .status-bar > div:nth-child(2) { text-align: center; }
@@ -620,11 +714,11 @@ td.editing {
 .toast {
   min-width: 260px;
   max-width: 360px;
-  padding: 14px 16px;
-  border-radius: 14px;
-  border: 1px solid rgba(138, 155, 176, 0.18);
-  background: rgba(22, 26, 34, 0.95);
-  box-shadow: var(--shadow);
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  background: var(--white);
+  box-shadow: 0 10px 30px rgba(16,24,40,0.06);
   animation: toastIn 240ms ease both;
 }
 
@@ -643,6 +737,15 @@ table tbody tr:last-child td:last-child { border-bottom-right-radius: 18px; }
   color: var(--muted);
   text-align: center;
   padding: 48px 24px;
+}
+
+/* Make table headers sticky and crisp */
+.table-wrapper table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--white);
+  z-index: 4;
+  border-bottom: 1px solid var(--border-strong);
 }
 
 @keyframes fadeUp {

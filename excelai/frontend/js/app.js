@@ -310,10 +310,10 @@
       if (kind === 'text') {
         addUserMessage(payload.prompt);
         const calculations = collectCalculations();
-        // Send calculations as part of selected-topics flow for consistency
+        // Include calculated columns with text extraction so server can apply BODMAS rules
         response = await window.ExcelAI.request('/api/extract/text', {
           method: 'POST',
-          body: JSON.stringify({ prompt: payload.prompt }),
+          body: JSON.stringify({ prompt: payload.prompt, calculated_columns: calculations }),
         });
       } else if (kind === 'image') {
         addUserMessage(`Image uploaded: ${payload.file.name}`);
@@ -675,6 +675,30 @@
       document.body.style.overflow = 'auto';
     }
   });
+
+  // Chat panel toggle: click the left vertical tab header to expand/collapse chat overlay
+  (function setupChatToggle() {
+    const chatPanel = document.querySelector('.chat-panel');
+    if (!chatPanel) return;
+    const header = chatPanel.querySelector('.panel-header');
+    if (!header) return;
+    const tabBtn = header.querySelector('.chat-tab') || header;
+    tabBtn.style.cursor = 'pointer';
+    tabBtn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      chatPanel.classList.toggle('expanded');
+      // ensure lucide icons render when expanded
+      try { if (window.lucide) window.lucide.createIcons(); } catch (e) {}
+    });
+
+    // Collapse when clicking outside
+    document.addEventListener('click', (ev) => {
+      if (!chatPanel.classList.contains('expanded')) return;
+      if (!chatPanel.contains(ev.target)) {
+        chatPanel.classList.remove('expanded');
+      }
+    });
+  })();
 
   setStatus('Ready');
   addSystemMessage('ExcelLence is ready. Choose a data source on the left to begin extraction.');

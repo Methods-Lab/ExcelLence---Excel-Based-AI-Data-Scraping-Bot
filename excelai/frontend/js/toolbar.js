@@ -1,7 +1,7 @@
 (function () {
   function groupButton(action, iconName, label, active = false, disabled = false) {
     return `
-      <button class="toolbar-button ${active ? 'active' : ''}" data-action="${action}" ${disabled ? 'disabled' : ''} aria-label="${label}">
+      <button class="toolbar-button ${active ? 'active' : ''}" data-action="${action}" ${disabled ? 'disabled' : ''} aria-label="${label}" title="${label}">
         <span class="state-dot" aria-hidden="true"></span>
         <span class="icon"><i data-lucide="${iconName}"></i></span>
         <span class="label">${label}</span>

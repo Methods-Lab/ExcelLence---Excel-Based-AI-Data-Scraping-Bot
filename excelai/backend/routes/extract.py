@@ -104,11 +104,20 @@ async def extract_selected(payload: SelectedTopicsRequest, user: UserResponse = 
 
 @router.post("/text", response_model=ExtractResponse)
 async def extract_text(payload: TextExtractRequest, user: UserResponse = Depends(require_current_user)) -> ExtractResponse:
+    # perform extraction
     result = generate_table("TEXT", payload.prompt)
+
+    rows = result.get("rows", [])
+    columns = result.get("columns", [])
+
+    # apply calculated columns if provided
+    if getattr(payload, "calculated_columns", None):
+        rows, columns = apply_calculated_columns(rows, columns, payload.calculated_columns)
+
     return ExtractResponse(
-        columns=result["columns"],
-        rows=result["rows"],
-        confidence=result["confidence"],
+        columns=columns,
+        rows=rows,
+        confidence=result.get("confidence") or 0.0,
         source_type="TEXT",
         warnings=result.get("warnings", []),
         table_title=result.get("table_title"),

@@ -40,6 +40,7 @@ class TokenResponse(BaseModel):
 
 class TextExtractRequest(BaseModel):
     prompt: str = Field(min_length=1)
+    calculated_columns: list[dict] | None = None
 
 
 class UrlExtractRequest(BaseModel):
