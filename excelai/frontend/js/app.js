@@ -451,6 +451,132 @@
     }
   }
 
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function renderWorkbookPreview(container, spec) {
+    const dash = spec.dashboard || {};
+    const sheetTabs = [dash.name || 'Dashboard', ...(spec.sheets || []).map((s) => s.name)];
+    const kpis = (dash.kpis || []).map((k) => {
+      const up = String(k.delta || '').trim().startsWith('+');
+      return `
+        <div class="wb-kpi">
+          <span class="wb-kpi-label">${escapeHtml(k.label)}</span>
+          <span class="wb-kpi-value">${escapeHtml(k.value)}</span>
+          ${k.delta ? `<span class="wb-kpi-delta ${up ? 'up' : 'down'}">${escapeHtml(k.delta)}</span>` : ''}
+        </div>`;
+    }).join('');
+    const charts = (dash.charts || []).map((c) => `<li><strong>${escapeHtml(c.type)}</strong> — ${escapeHtml(c.title)} <em>(${escapeHtml((c.value_columns || []).join(', '))} by ${escapeHtml(c.category_column)})</em></li>`).join('');
+    const narrative = (dash.narrative || []).map((n) => `<li>${escapeHtml(n)}</li>`).join('');
+
+    container.innerHTML = `
+      <div class="wb-preview-head">${escapeHtml(dash.headline || spec.title || 'Report')}</div>
+      <div class="wb-tabs">${sheetTabs.map((t) => `<span class="wb-tab">${escapeHtml(t)}</span>`).join('')}</div>
+      ${kpis ? `<div class="wb-kpis">${kpis}</div>` : ''}
+      ${charts ? `<div class="wb-section"><h4>Charts</h4><ul>${charts}</ul></div>` : '<div class="wb-muted">No charts suggested for this data.</div>'}
+      ${narrative ? `<div class="wb-section"><h4>Key Insights</h4><ul>${narrative}</ul></div>` : ''}`;
+  }
+
+  function openWorkbookBuilder() {
+    if (!state.currentData) {
+      window.ExcelAI.showToast('Extract data first, then generate a workbook.', 'warning');
+      return;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.className = 'wb-overlay';
+    overlay.innerHTML = `
+      <div class="wb-modal" role="dialog" aria-modal="true" aria-label="Generate polished workbook">
+        <div class="wb-modal-head">
+          <h3>✨ Generate Polished Workbook</h3>
+          <button class="wb-close" type="button" aria-label="Close">✕</button>
+        </div>
+        <div class="wb-modal-body">
+          <label class="wb-field">
+            <span>Report focus (optional)</span>
+            <textarea id="wbIntent" rows="2" placeholder="e.g. Highlight monthly revenue growth and the top regions"></textarea>
+          </label>
+          <label class="wb-field">
+            <span>Theme</span>
+            <select id="wbTheme">
+              <option value="corporate">Corporate (blue)</option>
+              <option value="dark">Dark</option>
+              <option value="light">Light</option>
+            </select>
+          </label>
+          <div class="wb-preview hidden" id="wbPreview"></div>
+        </div>
+        <div class="wb-modal-foot">
+          <button class="ghost-btn wb-cancel" type="button">Cancel</button>
+          <button class="secondary-btn" id="wbPreviewBtn" type="button">Preview Design</button>
+          <button class="primary-btn hidden" id="wbDownloadBtn" type="button">Download .xlsx</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    const close = () => overlay.remove();
+    overlay.querySelector('.wb-close').addEventListener('click', close);
+    overlay.querySelector('.wb-cancel').addEventListener('click', close);
+    overlay.addEventListener('click', (event) => { if (event.target === overlay) close(); });
+    document.addEventListener('keydown', function onEsc(event) {
+      if (event.key === 'Escape') { close(); document.removeEventListener('keydown', onEsc); }
+    });
+
+    const previewBtn = overlay.querySelector('#wbPreviewBtn');
+    const downloadBtn = overlay.querySelector('#wbDownloadBtn');
+    const previewBox = overlay.querySelector('#wbPreview');
+
+    const payload = () => ({
+      columns: state.currentData.columns,
+      rows: state.currentData.rows,
+      intent: overlay.querySelector('#wbIntent').value.trim(),
+      theme: overlay.querySelector('#wbTheme').value,
+      filename: 'ExcelLence_Report',
+    });
+
+    previewBtn.addEventListener('click', async () => {
+      previewBtn.disabled = true;
+      previewBtn.textContent = 'Designing…';
+      try {
+        const spec = await window.ExcelAI.request('/api/workbook/design', {
+          method: 'POST',
+          body: JSON.stringify(payload()),
+        });
+        renderWorkbookPreview(previewBox, spec);
+        previewBox.classList.remove('hidden');
+        downloadBtn.classList.remove('hidden');
+        previewBtn.textContent = 'Re-design';
+      } catch (error) {
+        window.ExcelAI.showToast(error.message || 'Design failed', 'error');
+        previewBtn.textContent = 'Preview Design';
+      } finally {
+        previewBtn.disabled = false;
+      }
+    });
+
+    downloadBtn.addEventListener('click', async () => {
+      downloadBtn.disabled = true;
+      downloadBtn.textContent = 'Building…';
+      try {
+        await window.ExcelAI.download('/api/workbook/build', payload(), 'ExcelLence_Report.xlsx');
+        window.ExcelAI.showToast('Polished workbook downloaded.', 'success');
+        setStatus('Workbook exported');
+        close();
+      } catch (error) {
+        window.ExcelAI.showToast(error.message || 'Workbook build failed', 'error');
+      } finally {
+        downloadBtn.disabled = false;
+        downloadBtn.textContent = 'Download .xlsx';
+      }
+    });
+  }
+
   async function loadUser() {
     try {
       state.user = await window.ExcelAI.request('/api/auth/me', { method: 'GET' });
@@ -502,6 +628,9 @@
         break;
       case 'export-pdf':
         exportPdf().catch(() => {});
+        break;
+      case 'build-workbook':
+        openWorkbookBuilder();
         break;
       case 'mode-text':
         setMode('text');
@@ -634,6 +763,8 @@
   document.getElementById('confirmExport').addEventListener('click', () => {
     exportExcel().catch(() => {});
   });
+
+  document.getElementById('buildWorkbookBtn').addEventListener('click', () => openWorkbookBuilder());
 
   document.getElementById('reextractButton').addEventListener('click', () => {
     if (state.lastExtraction) {

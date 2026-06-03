@@ -5,11 +5,6 @@ from fastapi.responses import StreamingResponse
 from io import BytesIO
 from datetime import datetime
 
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4, landscape
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet
-
 from backend.models.schemas import ExportRequest, UserResponse
 from backend.routes.auth import require_current_user
 
@@ -17,6 +12,11 @@ router = APIRouter(prefix="/api/export", tags=["export"])
 
 
 def generate_pdf_bytes(columns: list[dict], rows: list[list], filename: str | None = None) -> bytes:
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+    from reportlab.lib.styles import getSampleStyleSheet
+
     buffer = BytesIO()
     pagesize = landscape(A4) if len(columns) > 5 else A4
     doc = SimpleDocTemplate(buffer, pagesize=pagesize, leftMargin=36, rightMargin=36, topMargin=72, bottomMargin=54)

@@ -4,6 +4,7 @@ groq
 openpyxl
 Pillow
 pytesseract
+pypdf
 beautifulsoup4
 httpx
 python-jose[cryptography]
@@ -11,3 +12,4 @@ python-multipart
 bcrypt
 python-dotenv
 email-validator
+reportlab

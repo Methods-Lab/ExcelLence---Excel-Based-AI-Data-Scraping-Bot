@@ -1332,3 +1332,82 @@ table tbody tr:last-child td:last-child { border-bottom-right-radius: 18px; }
   .workspace { gap: 6px; }
   .chat-panel, .table-panel { border-radius: 14px; }
 }
+
+/* ===== Polished Workbook Builder modal ===== */
+.wb-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 12, 18, 0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  animation: wbFade 160ms ease both;
+}
+@keyframes wbFade { from { opacity: 0; } to { opacity: 1; } }
+
+.wb-modal {
+  width: min(620px, 100%);
+  max-height: 88vh;
+  overflow: auto;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+}
+.wb-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  border-bottom: 1px solid #ECEFF3;
+}
+.wb-modal-head h3 { margin: 0; font-size: 1.05rem; color: #1A1D23; }
+.wb-close {
+  border: none; background: transparent; cursor: pointer;
+  font-size: 1rem; color: #6B7280; padding: 4px 8px; border-radius: 8px;
+}
+.wb-close:hover { background: #F2F5F7; }
+
+.wb-modal-body { padding: 18px 22px; display: grid; gap: 14px; }
+.wb-field { display: grid; gap: 6px; }
+.wb-field > span { font-size: 0.78rem; font-weight: 600; color: #4B5563; }
+.wb-field textarea, .wb-field select {
+  width: 100%; padding: 10px 12px; border: 1px solid #E1E4E8;
+  border-radius: 8px; font: inherit; color: #1A1D23; background: #FBFCFD;
+}
+.wb-field textarea { resize: vertical; min-height: 56px; }
+
+.wb-modal-foot {
+  display: flex; gap: 10px; justify-content: flex-end;
+  padding: 16px 22px; border-top: 1px solid #ECEFF3; flex-wrap: wrap;
+}
+
+.wb-preview {
+  border: 1px solid #ECEFF3; border-radius: 12px; padding: 16px; background: #F9FAFB;
+  display: grid; gap: 14px;
+}
+.wb-preview-head { font-size: 1rem; font-weight: 800; color: #1A1D23; }
+.wb-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.wb-tab {
+  font-size: 0.72rem; font-weight: 600; padding: 4px 10px; border-radius: 999px;
+  background: #1F4E78; color: #fff;
+}
+.wb-tab + .wb-tab { background: #E1E8F0; color: #1F4E78; }
+.wb-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.wb-kpi {
+  background: #fff; border: 1px solid #ECEFF3; border-radius: 10px; padding: 10px 12px;
+  display: grid; gap: 2px;
+}
+.wb-kpi-label { font-size: 0.68rem; font-weight: 700; color: #6B7280; text-transform: uppercase; letter-spacing: .02em; }
+.wb-kpi-value { font-size: 1.15rem; font-weight: 800; color: #1A1D23; }
+.wb-kpi-delta { font-size: 0.72rem; font-weight: 700; }
+.wb-kpi-delta.up { color: #1F9D55; }
+.wb-kpi-delta.down { color: #E02424; }
+.wb-section h4 { margin: 0 0 6px; font-size: 0.82rem; color: #374151; }
+.wb-section ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.wb-section li { font-size: 0.82rem; color: #374151; }
+.wb-muted { font-size: 0.8rem; color: #9CA3AF; font-style: italic; }

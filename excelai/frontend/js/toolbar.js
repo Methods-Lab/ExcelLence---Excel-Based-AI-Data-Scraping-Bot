@@ -4,6 +4,7 @@
     file: '💾',
     'file-text': '📄',
     'file-pdf': '🧾',
+    sparkles: '✨',
     type: '⌨️',
     image: '🖼️',
     link: '🔗',
@@ -51,6 +52,13 @@
               ${groupButton('export-xlsx', 'file', 'Export to Excel', false, !state.hasData)}
               ${groupButton('export-csv', 'file-text', 'Export as CSV', false, !state.hasData)}
               ${groupButton('export-pdf', 'file-pdf', 'Export as PDF', false, !state.hasData)}
+            </div>
+          </div>
+
+          <div class="ribbon-group">
+            <div class="ribbon-label">Report</div>
+            <div class="toolbar-group" role="toolbar" aria-label="Report actions">
+              ${groupButton('build-workbook', 'sparkles', 'Polished Workbook', false, !state.hasData)}
             </div>
           </div>
 
